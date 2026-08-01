@@ -71,7 +71,7 @@ export default function BookJourney({ p }) {
   // space for the text below; mobile brings it near centre to tighten the gap.
   const yOut = desktop
     ? [0, 0, 0.04 * vh, 0.04 * vh, -0.1 * vh, -0.1 * vh, -0.1 * vh]
-    : [0.02 * vh, 0, -0.04 * vh, -0.04 * vh, 0.06 * vh, 0.06 * vh, 0.06 * vh]
+    : [0.05 * vh, 0.03 * vh, -0.01 * vh, -0.01 * vh, 0.09 * vh, 0.09 * vh, 0.09 * vh]
 
   // Near-constant scale (no hero zoom-forward). Desktop is kept a little smaller so
   // the book sits comfortably in the composition; the final "imbalance" beat (last 3

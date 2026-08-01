@@ -17,6 +17,20 @@ import { Beat, ScrubNumber, BgLayer, useLocal } from './cine'
 const SCENES = { A: 3, B: 3, C: 2, D: 2, E: 2, F: 3 } // frames per scene (Σ = 15)
 const STORY_START = 0.2
 const MOBILE_STORY_END = 0.9
+const SCENE_RANGES = {
+  A: [0.0, 0.2],
+  B: [0.2, 0.4],
+  C: [0.4, 0.5333],
+  D: [0.5333, 0.6667],
+  E: [0.6667, 0.8],
+  F: [0.8, 1.0],
+}
+const CHAPTERS = {
+  book: SCENE_RANGES.A,
+  crisis: [SCENE_RANGES.B[0], SCENE_RANGES.C[1]],
+  transformation: [SCENE_RANGES.D[0], SCENE_RANGES.E[1]],
+  credibility: SCENE_RANGES.F,
+}
 
 // Even beat timing inside a scene. The scene's local 0→1 is split into `k` equal
 // slots (one per frame); frame `i` fades in, holds, then fades out within its slot
@@ -31,6 +45,11 @@ const frameAt = (i, k) => {
   const e = (i + 1) * slot
   const f = FADE * slot
   return [i === 0 ? 0 : s, s + f, i === k - 1 ? 1 : e - f, i === k - 1 ? 1 : e]
+}
+
+const rangeWithin = ([start, end], [parentStart, parentEnd]) => {
+  const size = parentEnd - parentStart
+  return [(start - parentStart) / size, (end - parentStart) / size]
 }
 
 export default function CinematicStory() {
@@ -59,12 +78,22 @@ export default function CinematicStory() {
   // 15 frames spans an identical 1/15 of global progress.
   //   A 3 → 0.0000–0.2000 · B 3 → 0.2000–0.4000 · C 2 → 0.4000–0.5333
   //   D 2 → 0.5333–0.6667 · E 2 → 0.6667–0.8000 · F 3 → 0.8000–1.0000
-  const A = useLocal(g, 0.0, 0.2) // imbalance  (cream)
-  const B = useLocal(g, 0.2, 0.4) // crisis     (dark)
-  const C = useLocal(g, 0.4, 0.5333) // choice   (dark)
-  const D = useLocal(g, 0.5333, 0.6667) // pillars (forest)
-  const E = useLocal(g, 0.6667, 0.8) // reversal  (yellow)
-  const F = useLocal(g, 0.8, 1.0) // manual      (cream)
+  // Chapter ownership follows the client's narrative structure while preserving the
+  // exact scene windows below. These are logical progress controllers only; they do
+  // not add sections, DOM nodes, scroll observers, or pacing changes.
+  const bookProgress = useLocal(g, ...CHAPTERS.book)
+  const crisisProgress = useLocal(g, ...CHAPTERS.crisis)
+  const transformationProgress = useLocal(g, ...CHAPTERS.transformation)
+  const credibilityProgress = useLocal(g, ...CHAPTERS.credibility)
+
+  // Scenes inside multi-scene chapters are remapped through chapter-local progress
+  // so each scene receives the same effective value at the same global scroll point.
+  const A = bookProgress // imbalance  (cream)
+  const B = useLocal(crisisProgress, ...rangeWithin(SCENE_RANGES.B, CHAPTERS.crisis)) // crisis     (dark)
+  const C = useLocal(crisisProgress, ...rangeWithin(SCENE_RANGES.C, CHAPTERS.crisis)) // choice     (dark)
+  const D = useLocal(transformationProgress, ...rangeWithin(SCENE_RANGES.D, CHAPTERS.transformation)) // pillars (forest)
+  const E = useLocal(transformationProgress, ...rangeWithin(SCENE_RANGES.E, CHAPTERS.transformation)) // reversal (yellow)
+  const F = credibilityProgress // manual      (cream)
 
   // sub-progress motion values that must be created at top level (hooks). Ranges are
   // placed inside their frame's local hold window so they read the same as before.
